@@ -10,30 +10,29 @@
 
 #include "menu.h"
 #include "therm.h"
+#include "base_screen.h"
 
 
 namespace reflow_esp {
 
-class ThermScreen {
+class ThermScreen: public BaseScreen {
   public:
     ThermScreen(TFT_eSPI* pTft, reflow_esp::Thermocouple* pTc1, reflow_esp::Thermocouple* pTc2);
     ~ThermScreen();
-    void loop(int tc_num);
-    void exitScreen();
+
+    void setActiveTC(int tc_num);
+    void loopImpl();
 
   protected:
-    void initScreen(int tc_num);
-    reflow_esp::Thermocouple* getTC(int tc_num);
+    void initScreenImpl();
+    reflow_esp::Thermocouple* getActiveTC();
 
     TFT_eSPI* mpTft;
     MeterWidget* mpWidget;
     reflow_esp::Thermocouple* mpTc1;
     reflow_esp::Thermocouple* mpTc2;
 
-    uint32_t mLastUpdate{0};
-    uint32_t mPeriod{500};
-
-    bool mScreenActive{false};
+    int mActiveTcNum{0};
 };
 
 } // namespace reflow_esp

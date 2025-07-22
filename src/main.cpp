@@ -198,7 +198,8 @@ void loop() {
   switch(gCurrentScreen) {
     case SCREEN_ID_TCMT: 
       {
-        thermScreen.loop(exitMenuOptions);
+        thermScreen.setActiveTC(exitMenuOptions);
+        thermScreen.loop();
         break;
       }
     case SCREEN_ID_INFO:
