@@ -1,9 +1,9 @@
+#include <FloatToAscii.h>
+
 #include "therm.h"
-//#include <max6675.h>
 
-static const float sLowTempThresh = 10.0f;
 
-namespace therm {
+namespace reflow_esp {
 
 void Thermocouple::setPins(uint8_t miso, uint8_t sck, uint8_t cs) {
   #ifdef HAS_MAX6675
@@ -16,7 +16,7 @@ void Thermocouple::setPins(uint8_t miso, uint8_t sck, uint8_t cs) {
 
 void Thermocouple::loop() {
   uint32_t now = millis();
-  if (now - this->last_update >= this->period) {
+  if (now - mLastUpdate >= mPeriod) {
     #ifdef HAS_MAX6675
     mCurrentTemp = pTc->readCelsius();
     #else
@@ -29,12 +29,19 @@ void Thermocouple::loop() {
       mCurrentTemp = pTc->getTemperature();
     }
     #endif
+  
+    mLastUpdate = millis();
   }
-  this->last_update = millis();
+}
+
+String Thermocouple::getTempString() {
+  if(!isValid()) return pTc->getErrorString();
+
+  return FloatToAscii(mTempString, mCurrentTemp, 2);
 }
 
 bool Thermocouple::isValid() {
   return mErrCode == MAX31855_ERROR_NONE;
 }
 
-} // namespace therm
+} // namespace reflow_esp

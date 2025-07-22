@@ -25,48 +25,73 @@ using namespace Menu;
 TFT_eSPI gfx = TFT_eSPI();
 
 // Encoder
-ClickEncoder clickEncoder = ClickEncoder(ENCA, ENCB, ENCBTN, ENCSTEPS, 1, INPUT, INPUT_PULLDOWN);
-ClickEncoderStream encStream(clickEncoder, 1);
+ClickEncoder gClickEncoder = ClickEncoder(ENCA, ENCB, ENCBTN, ENCSTEPS, 1, INPUT, INPUT_PULLDOWN);
+ClickEncoderStream gEncoderStream(gClickEncoder, 1);
 
 int exitMenuOptions = 0;
-int changeScreen = 0;
+int gCurrentScreen = SCREEN_ID_MENU;
+int gPrevScreen = gCurrentScreen;
 
-result go_pwm() {
+static result go_pwm() {
   delay(500);
   Serial.println("go_pwm");
   pwmout.setPeriod(pwmPeriodSec * 1000);
   return proceed;
 }
 
-result go_tc1_test() {
+static result go_tc1_test() {
   delay(500);
-  changeScreen = 1;
+  gPrevScreen = gCurrentScreen;
+  gCurrentScreen = SCREEN_ID_TCMT;
   exitMenuOptions = 1;
   return proceed;
 }
 
-result go_tc2_test() {
+static result go_tc2_test() {
   delay(500);
-  changeScreen = 1;
+  gPrevScreen = gCurrentScreen;
+  gCurrentScreen = SCREEN_ID_TCMT;
   exitMenuOptions = 2;
   return proceed;
 }
 
-result go_info() {
+static result go_info() {
   delay(500);
-  changeScreen = 1;
-  exitMenuOptions = 3;
+  gPrevScreen = gCurrentScreen;
+  gCurrentScreen = SCREEN_ID_INFO;
   return proceed;
+}
+
+namespace reflow_esp {
+  void restoreMenuScreen() {
+    gCurrentScreen = SCREEN_ID_MENU;
+    exitMenuOptions = 0;   // Return to the menu
+    gMainMenu.dirty = true; // Force the main menu to redraw itself
+    gfx.fillScreen(TFT_BLACK);
+    gNav.refresh();
+  }
+
+  bool buttonClicked() {
+    switch (gClickEncoder.getButton()) {
+      case ClickEncoder::Button_e::Pressed:
+      case ClickEncoder::Button_e::Clicked:
+      case ClickEncoder::Button_e::DoubleClicked:
+        return true;
+  
+      default:
+        return false;
+    }
+  }
 }
 
 const colorDef<uint16_t> colors[6] MEMMODE = {
   //{{disabled normal,disabled selected},{enabled normal,enabled selected, enabled editing}}
-  {{(uint16_t)Black, (uint16_t)Black}, {(uint16_t)Black, (uint16_t)Red,   (uint16_t)Red}}, //bgColor
+  {{(uint16_t)Black, (uint16_t)Black}, {(uint16_t)Black, (uint16_t)Blue,   (uint16_t)Blue}}, //bgColor
   {{(uint16_t)White, (uint16_t)White},  {(uint16_t)White, (uint16_t)White, (uint16_t)White}},//fgColor
   {{(uint16_t)Red, (uint16_t)Red}, {(uint16_t)Yellow, (uint16_t)Yellow, (uint16_t)Yellow}}, //valColor
   {{(uint16_t)White, (uint16_t)White}, {(uint16_t)White, (uint16_t)White, (uint16_t)White}}, //unitColor
-  {{(uint16_t)White, (uint16_t)Gray},  {(uint16_t)Black, (uint16_t)Red,  (uint16_t)White}}, //cursorColor
-  {{(uint16_t)White, (uint16_t)Yellow}, {(uint16_t)Black,  (uint16_t)Red,   (uint16_t)Red}}, //titleColor
+  {{(uint16_t)White, (uint16_t)Gray},  {(uint16_t)Black, (uint16_t)Blue,  (uint16_t)White}}, //cursorColor
+  {{(uint16_t)White, (uint16_t)Yellow}, {(uint16_t)Black,  (uint16_t)Blue,   (uint16_t)Blue}}, //titleColor
 };
 
 MENU(tempMenu, "Temperature", doNothing, noEvent, wrapStyle,
@@ -85,7 +110,7 @@ MENU(testsMenu, "Tests", doNothing, noEvent, wrapStyle,
   EXIT("< Back")
 )
 
-MENU(mainMenu, MACHINE_NAME, doNothing, noEvent, wrapStyle,
+MENU(gMainMenu, MACHINE_NAME, doNothing, noEvent, wrapStyle,
   OP("Info", go_info, enterEvent),
   SUBMENU(settingsMenu),
   SUBMENU(testsMenu),
@@ -93,11 +118,11 @@ MENU(mainMenu, MACHINE_NAME, doNothing, noEvent, wrapStyle,
 );
 
 serialIn serial(Serial);
-MENU_INPUTS(in, &encStream, &serial);
+MENU_INPUTS(in, &gEncoderStream, &serial);
 MENU_OUTPUTS(out, MAX_DEPTH,
   TFT_eSPI_OUT(gfx, colors, FONT_WIDTH, FONT_HEIGHT, {0, 0, GFX_WIDTH / FONT_WIDTH, GFX_HEIGHT / FONT_HEIGHT}),
   SERIAL_OUT(Serial),
   NONE
 );
 
-NAVROOT(nav, mainMenu, MAX_DEPTH, in, out);
+NAVROOT(gNav, gMainMenu, MAX_DEPTH, in, out);

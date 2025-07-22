@@ -5,14 +5,23 @@
 #include <menuIO/clickEncoderIn.h>
 
 extern TFT_eSPI gfx;
-extern ClickEncoder clickEncoder;
-extern ClickEncoderStream encStream;
+extern ClickEncoder gClickEncoder;
+extern ClickEncoderStream gEncoderStream;
 
-extern Menu::menu mainMenu;
-extern Menu::navRoot nav;
+extern Menu::menu gMainMenu;
+extern Menu::navRoot gNav;
 
 extern int exitMenuOptions;
-extern int changeScreen;
+
+extern int gPrevScreen;
+extern int gCurrentScreen;
+
+namespace reflow_esp {
+    void restoreMenuScreen();
+
+    bool buttonClicked();
+}
+
 /* --------------------------------- Colours -------------------------------- */
 
 #define Black RGB565(0,0,0)
@@ -32,3 +41,10 @@ extern int changeScreen;
 #define Yellow RGB565(255,255,0)
 #define White RGB565(255,255,255)
 #define DarkerOrange RGB565(255,140,0)
+
+/* --- Screens ---*/
+
+#define SCREEN_ID_MENU 0    // main menu
+#define SCREEN_ID_TCMT 1    // tc meter screen
+#define SCREEN_ID_INFO 2    // system information screen
+#define SCREEN_ID_RFLW 10   // reflow process monitor screen

@@ -19,21 +19,19 @@
 #include <ESPAsyncWebServer.h>
 #include <ElegantOTA.h>
 
-// Widget library
-#include <TFT_eWidget.h>
-
 // JSON
 #include <ArduinoJson.h>
 
-#include "core/info.h"
 #include "core/pwm.h"
 #include "core/therm.h"
+
+#include "core/therm_screen.h"
+#include "core/info_screen.h"
 
 const char* ssid = "TarNet";
 const char* password = "kirienko";
 
 AsyncWebServer server(80);
-reflow_esp::SystemInfo sysinfo;
 
 // Menu
 #include "core/menu.h"
@@ -50,7 +48,7 @@ hw_timer_t *timer = NULL;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
 pwm::PWMOutput pwmout;
-therm::Thermocouple tc1, tc2;
+reflow_esp::Thermocouple tc1, tc2;
 
 Buzzer::Melody_t testMelody {
   .nbNotes = 3,
@@ -60,8 +58,8 @@ Buzzer::Melody_t testMelody {
 
 Buzzer myBuzzer;
 
-MeterWidget   tcMeter1 = MeterWidget(&gfx);
-MeterWidget   tcMeter2 = MeterWidget(&gfx);
+reflow_esp::ThermScreen thermScreen(&gfx, &tc1, &tc2);
+reflow_esp::InfoScreen infoScreen(&gfx, &tc1, &tc2);
 
 /* -------------------------------------------------------------------------- */
 /*                                    SETUP                                   */
@@ -148,10 +146,6 @@ void setup() {
 
   initWiFi();
 
-  //server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-  //  request->send(200, "text/plain", "Hi! I am ESP32.");
-  //});
-
   server.on("/status", HTTP_GET, handleStatus);
   server.on("/config", HTTP_GET, handleGetConfig);
 
@@ -162,8 +156,8 @@ void setup() {
   server.begin();
   Serial.println("HTTP server started.");
 
-  clickEncoder.setAccelerationEnabled(false);
-  clickEncoder.setDoubleClickEnabled(false);
+  gClickEncoder.setAccelerationEnabled(false);
+  gClickEncoder.setDoubleClickEnabled(false);
 
   timer = timerBegin(0, 80, true);
   timerAttachInterrupt(timer, &onTimer, true);
@@ -188,38 +182,6 @@ void setup() {
   delay(500);
 }
 
-void initMeter(int tc) {
-  if(changeScreen == 0) return;
-
-  gfx.fillScreen(TFT_BLACK);
-  switch (tc) {
-  case 1:
-    tcMeter1.setZones(85, 100, 50, 85, 25, 50, 0, 25); // Example here red starts at 75% and ends at 100% of full scale
-    tcMeter1.analogMeter(0, 0, 100.0, "C", "0", "75", "150", "225", "300"); // Draw analogue meter at 0, 0
-    break;
-  case 2:
-    tcMeter2.setZones(85, 100, 50, 85, 25, 50, 0, 25); // Example here red starts at 75% and ends at 100% of full scale
-    tcMeter2.analogMeter(0, 0, 100.0, "C", "0", "75", "150", "225", "300"); // Draw analogue meter at 0, 0
-    break;
-  default:
-    break;
-  }
-  changeScreen = 0;
-}
-
-void initInfo() {
-  if(changeScreen == 0) return;
-  gfx.fillScreen(TFT_WHITE);
-
-  sysinfo.addr = WiFi.localIP();
-  sysinfo.wifi_ssid = WiFi.SSID();
-
-  changeScreen = 0;
-}
-
-void runTCTest(int tc);
-void runInfo();
-
 /* -------------------------------------------------------------------------- */
 /*                                  MAIN LOOP                                 */
 /* -------------------------------------------------------------------------- */
@@ -233,34 +195,23 @@ void loop() {
   static unsigned long lastMenuFrame = -menuFPS;
   unsigned long now = millis();
 
-  switch(exitMenuOptions) {
-    // case 1: {
-    //   delay (500);
-    //   digitalWrite(BUZZ, HIGH);
-    //   delay(buzzTimeOn * 1000);
-    //   digitalWrite(BUZZ, LOW);
-    //   exitMenuOptions = 0;
-    // }
-    case 1: 
+  switch(gCurrentScreen) {
+    case SCREEN_ID_TCMT: 
       {
-        runTCTest(1);
+        thermScreen.loop(exitMenuOptions);
         break;
       }
-    case 2: 
+    case SCREEN_ID_INFO:
       {
-        runTCTest(2);
+        infoScreen.loop();
         break;
       }
-    case 3:
-      {
-        runInfo();
-        break;
-      }
+    case SCREEN_ID_MENU:
     default:
       // Menu poll
       if (now - lastMenuFrame >= menuFPS) {
         lastMenuFrame = millis();
-        nav.poll();
+        gNav.poll();
       }
   }
 
@@ -269,87 +220,9 @@ void loop() {
 }
 
 /* -------------------------------------------------------------------------- */
-/*                                 INFO SCREEN                                */
-/* -------------------------------------------------------------------------- */
-
-void runInfo() {
-  delay(500);
-  initInfo();
-
-  gfx.setTextColor(TFT_BLACK, TFT_WHITE);
-  gfx.drawString("ReflowESP info", 10, 10);
-
-  //String str;
-  //str = "IP address: " + sysinfo.addr;
-  gfx.drawString("Address: " + sysinfo.addr.toString(), 10, 50);
-  gfx.drawString("SSID: " + sysinfo.wifi_ssid, 10, 70);
-  gfx.drawString("Profile: " + sysinfo.profile_title, 10, 90);
-
-  switch (clickEncoder.getButton()) {
-    case ClickEncoder::Button_e::Pressed:
-    case ClickEncoder::Button_e::Clicked:
-    case ClickEncoder::Button_e::DoubleClicked:
-      {
-        gfx.fillScreen(TFT_BLACK);
-        exitMenuOptions = 0;   // Return to the menu
-        mainMenu.dirty = true; // Force the main menu to redraw itself
-        nav.refresh();
-      }
-    default:
-        break;
-  }
-
-}
-
-/* -------------------------------------------------------------------------- */
-/*                                 TC TESTS                                   */
-/* -------------------------------------------------------------------------- */
-
-void runTCTest(int tc) {
-  delay(500); // Pause to allow the button to come up
-
-  initMeter(tc);
-
-  float _temp = 0.0f;
-
-  switch(tc) {
-    case 1:
-      {
-        _temp = tc1.read();
-        //tcMeter1.updateNeedle(_temp, 0);
-        break;
-      }
-    case 2:
-      {
-        _temp = tc2.read();
-        //tcMeter2.updateNeedle(_temp, 0);
-        break;
-      }
-    default:
-      return;
-  }
-
-  //gfx.drawFloat(_temp, 10, 100, 100);
-
-  switch (clickEncoder.getButton()) {
-    case ClickEncoder::Button_e::Pressed:
-    case ClickEncoder::Button_e::Clicked:
-    case ClickEncoder::Button_e::DoubleClicked:
-      {
-        gfx.fillScreen(TFT_BLACK);
-        exitMenuOptions = 0;   // Return to the menu
-        mainMenu.dirty = true; // Force the main menu to redraw itself
-        nav.refresh();
-      }
-    default:
-        break;
-  }
-}
-
-/* -------------------------------------------------------------------------- */
 /*                                 INTERRUPTS                                 */
 /* -------------------------------------------------------------------------- */
 
 void IRAM_ATTR onTimer() {
-  clickEncoder.service();
+  gClickEncoder.service();
 }
