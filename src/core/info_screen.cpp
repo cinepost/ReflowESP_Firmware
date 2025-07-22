@@ -25,6 +25,7 @@ void InfoScreen::loopImpl() {
 
 void InfoScreen::initScreenImpl() {
   mpTft->fillScreen(TFT_WHITE);
+  mpTft->setTextSize(2);
 
   mInfo.addr = WiFi.localIP();
   mInfo.wifi_ssid = WiFi.SSID();

@@ -35,6 +35,7 @@ void BaseScreen::initScreen() {
 
 void BaseScreen::exitScreen() {
   if(gCurrentScreen != mScreenNum) return;
+  exitScreenImpl();
   mScreenActive = false;
   restoreMenuScreen();
 }

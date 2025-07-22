@@ -64,6 +64,7 @@ static result go_info() {
 
 namespace reflow_esp {
   void restoreMenuScreen() {
+    gfx.setTextSize(2);
     gCurrentScreen = SCREEN_ID_MENU;
     exitMenuOptions = 0;   // Return to the menu
     gMainMenu.dirty = true; // Force the main menu to redraw itself

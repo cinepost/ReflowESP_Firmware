@@ -27,6 +27,7 @@
 
 #include "core/therm_screen.h"
 #include "core/info_screen.h"
+#include "core/proc_screen.h"
 
 const char* ssid = "TarNet";
 const char* password = "kirienko";
@@ -47,7 +48,8 @@ int pwmPeriodSec = 5;
 hw_timer_t *timer = NULL;
 portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
-pwm::PWMOutput pwmout;
+reflow_esp::PWMOutput pHeater1, pHeater2, pHeater3;
+reflow_esp::PWMOutput pwmout;
 reflow_esp::Thermocouple tc1, tc2;
 
 Buzzer::Melody_t testMelody {
@@ -60,6 +62,7 @@ Buzzer myBuzzer;
 
 reflow_esp::ThermScreen thermScreen(&gfx, &tc1, &tc2);
 reflow_esp::InfoScreen infoScreen(&gfx, &tc1, &tc2);
+reflow_esp::ProcScreen procScreen(&gfx, &tc1, &tc2);
 
 /* -------------------------------------------------------------------------- */
 /*                                    SETUP                                   */

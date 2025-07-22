@@ -9,6 +9,4 @@ extern int pwmPeriodSec;
 
 extern float pwmState;
 
-extern pwm::PWMOutput pwmout;
-extern reflow_esp::Thermocouple tc1;
-extern reflow_esp::Thermocouple tc2;
+extern reflow_esp::PWMOutput pwmout;

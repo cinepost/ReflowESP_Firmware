@@ -24,6 +24,7 @@ void ThermScreen::loopImpl() {
 
 void ThermScreen::initScreenImpl() {
   mpTft->fillScreen(TFT_BLACK);
+  mpTft->setTextSize(1);
   mpWidget->setZones(85, 100, 70, 85, 35, 70, 0, 35);
   mpWidget->analogMeter(0, 0, 100.0, "C", "0", "75", "150", "225", "300"); // Draw analogue meter at 0, 0
 }

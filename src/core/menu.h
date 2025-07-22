@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CORE_MENU__H
+#define CORE_MENU__H
 
 #include <TFT_eSPI.h>
 #include <ClickEncoder.h>
@@ -47,4 +48,6 @@ namespace reflow_esp {
 #define SCREEN_ID_MENU 0    // main menu
 #define SCREEN_ID_TCMT 1    // tc meter screen
 #define SCREEN_ID_INFO 2    // system information screen
-#define SCREEN_ID_RFLW 10   // reflow process monitor screen
+#define SCREEN_ID_PROC 10   // reflow process monitor screen
+
+#endif // CORE_MENU__H

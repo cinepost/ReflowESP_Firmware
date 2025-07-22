@@ -2,25 +2,25 @@
 
 #include <Arduino.h>
 
-namespace pwm {
+namespace reflow_esp {
 
 void PWMOutput::setOutputState(bool new_state) {
-  if (new_state != this->current_state_) {
-    this->current_state_ = new_state;
-    digitalWrite(this->pin_, new_state);
-    Serial.printf("Setting state %s\n", new_state ? "on" : "off");
-  }
+  if (new_state == this->mCurrentState) return;
+  
+  mCurrentState = new_state;
+  digitalWrite(mPin, new_state);
+  Serial.printf("Setting state %s\n", new_state ? "on" : "off");
 }
 
 void PWMOutput::loop() {
   uint32_t now = millis();
-  float scaled_state = this->state_ * this->period_;
+  float scaled_state = mState * mPeriod;
 
-  this->setOutputState(scaled_state > now - this->period_start_time_);
+  setOutputState(scaled_state > now - mPeriodStartTime);
 
-  if (now - this->period_start_time_ >= this->period_) {
-    this->period_start_time_ += this->period_;
+  if (now - mPeriodStartTime >= mPeriod) {
+    mPeriodStartTime += mPeriod;
   }
 }
 
-} // namespace pwm
+} // namespace reflow_esp

@@ -22,6 +22,8 @@ class BaseScreen {
     void initScreen();
     virtual void initScreenImpl() = 0;
 
+    virtual void exitScreenImpl() {};
+
     uint32_t mPeriod{500};
     uint32_t mLastUpdate{0};
 
